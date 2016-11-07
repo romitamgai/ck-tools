@@ -1,0 +1,11 @@
+{
+  "name": "sheet-processor",
+  "version": "1.0.0",
+  "description": "Utility for processing a range of cell in a spreadsheet",
+  "main": "sheet-processor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Cristian Vlasceanu <cristian@careerkey.org>",
+  "license": "UNLICENSED"
+}
