@@ -1,0 +1,15 @@
+{
+  "name": "command-line",
+  "version": "1.0.0",
+  "description": "Convenience wrapper around command-line-args",
+  "main": "command-line.js",
+  "scripts": {
+    "test": "mocha -u tdd"
+  },
+  "author": "Cristian Vlasceanu <cristian@careerkey.org>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "command-line-args": "^3.0.2",
+    "path": "^0.12.7"
+  }
+}
