@@ -7,6 +7,7 @@ describe('CommandLine', function() {
         commandLine = new CommandLine([
             { name: 'encoding', alias: 'e', type: String, defaultValue: 'utf8' },
             { name: 'file', alias: 'f', type: String },
+            { name: 'flag', type: Boolean, defaultValue: false },
         ])
     })
 
@@ -14,8 +15,8 @@ describe('CommandLine', function() {
         it ('should be valid', function() {
             assert(commandLine instanceof CommandLine);
 
-            // --help is automatically added, so expect 3 defs:
-            assert.equal(commandLine.definitions.length, 3);
+            // --help is automatically added, so expect 4 defs:
+            assert.equal(commandLine.definitions.length, 4);
         })
     })
 
@@ -30,7 +31,7 @@ describe('CommandLine', function() {
         it ('should emit error', function() {
             commandLine.parse([ '-e', 'utf16' ], function(err, params) {
                 assert.equal(err, 'file not specified');
-                assert.deepEqual(params, { encoding: 'utf16' });
+                assert.deepEqual(params, { encoding: 'utf16', flag: false });
             })
         })
     })
@@ -48,7 +49,7 @@ describe('CommandLine', function() {
     
     describe('#usage()', function() {
         it ('should return expected usage message', function() {
-            const usage = 'Usage:\nnode _mocha [--encoding=<encoding>] --file=<file> [--help]'
+            const usage = 'Usage:\nnode _mocha [--encoding=<encoding>] --file=<file> [--flag] [--help]'
                 + '\nnode _mocha [-e <encoding>] -f <file> [-h]';
             assert.equal(commandLine.usage(), usage);
         })

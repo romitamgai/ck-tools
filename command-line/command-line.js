@@ -21,7 +21,7 @@ class CommandLine {
             if (name == 'help') {
                 continue;
             }
-            if (!params[name]) {
+            if (!params.hasOwnProperty(name)) {
                 error = name + ' not specified';
                 break;
             }
@@ -36,25 +36,28 @@ class CommandLine {
     }
     
     usage() {
+        function isOptional(def) {
+            return def.name == 'help' || def.hasOwnProperty('defaultValue');
+        }
         const progname = path.basename(process.argv[1]);
         let options = '';
         let getOpts = '';
         this.definitions.forEach(function(def) {
-            if (def.name == 'help' || def.defaultValue) {
+            if (isOptional(def)) {
                 options += ' [--' + def.name;
-                getOpts += ' [-' + def.alias;
+                if (def.alias) getOpts += ' [-' + def.alias;
             }
             else {
                 options += ' --' + def.name;
-                getOpts += ' -' + def.alias;
+                if (def.alias) getOpts += ' -' + def.alias;
             }
             if (def.type !== Boolean) {
                 options += '=<' + def.name + '>';
-                getOpts += ' <' + def.name + '>';
+                if (def.alias) getOpts += ' <' + def.name + '>';
             }
-            if (def.name == 'help' || def.defaultValue) {
+            if (isOptional(def)) {
                 options += ']';
-                getOpts += ']';
+                if (def.alias) getOpts += ']';
             }
         });
         return 'Usage:\nnode ' + progname + options + '\nnode ' + progname + getOpts;

@@ -10,6 +10,7 @@ const CmdLineSpec = require('../command-line');
 const cmdLineSpec = new CmdLineSpec([
     { name: 'file', alias: 'f', type: String },
     { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1' },
+    { name: 'workgroups', alias: 'w', type: Boolean, defaultValue: false },
 ]);
 
 const args = validateArgs(cmdLineSpec.parse(process.argv));
@@ -30,7 +31,9 @@ sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
     if (row == sheetProcessor.firstRow) {
         // assume first row has the titles
         if (!global.prop) global.prop = [];
-        global.prop[col] = cell.v;
+        if (cell) {
+            global.prop[col] = cell.v;
+        }
         return;
     }
     cell = findCellValue(sheetProcessor.sheet, col, row, nextRow);

@@ -54,11 +54,11 @@ class SheetProcessor {
     }
 
     forEachCell(callback) {
-        for (let row = this.firstRow, nextRow = row; row != this.lastRow; row = nextRow) {
+        for (let row = this.firstRow, nextRow = row; row <= this.lastRow; row = nextRow) {
             nextRow = this.getNextRow(row);
-            for (let col = this.firstColumn, nextCol = col; col < this.lastColumn; col = nextCol) {
+            for (let col = this.firstColumn, nextCol = col; col <= this.lastColumn; col = nextCol) {
                 nextCol = this.getNextColumn(col);
-                callback(col, row, nextRow, nextCol == this.lastColumn);
+                callback(col, row, nextRow, nextCol > this.lastColumn);
             }
         }
     }
