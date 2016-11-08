@@ -14,16 +14,24 @@ class CommandLine {
             return null;
         }
         let params = commandLineArgs(this.definitions, argv);
+        let error = null;
         for (let i = 0; i != this.definitions.length; ++i) {
             let def = this.definitions[i];
-            const name = def.name;
-            if (name == 'help') return true;
+            let name = def.name;
+            if (name == 'help') {
+                continue;
+            }
             if (!params[name]) {
-                callback(name + ' not specified', params);
-                return;
+                error = name + ' not specified';
+                break;
             }
         }
-        callback(null, params);
+        if (callback) {
+            callback(error, params);
+        }
+        else if (error) {
+            throw new Error(error);
+        }
         return params;
     }
     

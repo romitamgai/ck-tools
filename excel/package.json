@@ -9,6 +9,7 @@
   "author": "Cristian Vlasceanu <cristian@careerkey.org>",
   "license": "UNLICENSED",
   "dependencies": {
+    "fs": "0.0.1-security",
     "xlsx": "^0.8.0"
   }
 }

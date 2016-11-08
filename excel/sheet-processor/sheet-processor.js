@@ -1,3 +1,5 @@
+'use strict';
+
 class SheetProcessor {
     constructor(sheet) {
         this.sheet = sheet;
@@ -61,6 +63,7 @@ class SheetProcessor {
         }
     }
 }
+
 
 module.exports = SheetProcessor;
 

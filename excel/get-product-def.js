@@ -1,44 +1,82 @@
 // Extract product definitions from Excel file
+'use strict';
+const fs = require('fs'); // for validating input file path
+const path = require('path');
+
 const xlsx = require('xlsx');
 const SheetProcessor = require('./sheet-processor');
 
-const workbook = xlsx.readFile(process.argv[2]);
-sheetProcessor = new SheetProcessor(workbook.Sheets.Sheet1);
+const CmdLineSpec = require('../command-line');
+const cmdLineSpec = new CmdLineSpec([
+    { name: 'file', alias: 'f', type: String },
+    { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1' },
+]);
 
-programs = [];
+const args = validateArgs(cmdLineSpec.parse(process.argv));
+const workbook = xlsx.readFile(args.file);
+const sheet = workbook.Sheets[args.sheet];
+if (!sheet) {
+    throw new Error('sheet not found: ' + args.sheet);
+}
+const sheetProcessor = new SheetProcessor(sheet);
+
+const global = {
+    docs: []
+};
+
 
 sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
-    cell = sheetProcessor.sheet[col + row];
+    let cell = sheetProcessor.sheet[col + row];
     if (row == sheetProcessor.firstRow) {
         // assume first row has the titles
-        if (!this.prop) prop = []
-        prop[col] = cell.v;
+        if (!global.prop) global.prop = [];
+        global.prop[col] = cell.v;
         return;
     }
     cell = findCellValue(sheetProcessor.sheet, col, row, nextRow);
-    if (!this.instructionalProgram) {
-        instructionalProgram = {}
+    if (!global.doc) {
+        global.doc = {};
     }
-    instructionalProgram[prop[col]] = cell? cell.v : cell; 
+    global.doc[global.prop[col]] = cell? cell.v : cell; 
     if (rowComplete) {
-        // console.log(JSON.stringify(instructionalProgram, null, 4));
-        programs.push(JSON.parse(JSON.stringify(instructionalProgram)));
+        let temp = JSON.parse(JSON.stringify(global.doc));
+        if (Object.keys(temp) != 0) {
+            global.docs.push(temp);
+        }
     }
 });
 
 
 function findCellValue(sheet, col, row, nextRow) {
-    cell = sheet[col + row];
+    let cell = sheet[col + row];
     while (!cell && row < nextRow) {
         ++row;
         cell = sheet[col + row];
     }
-    if (prop[col] == 'CK Classification') {
-        if (!cell) cell = prev;
-        prev = cell;
+    if (global.prop[col] == 'CK Classification') {
+        if (!cell) cell = global.prev;
+        global.prev = cell;
     }
     return cell;
 }
-        
-console.log(JSON.stringify(programs, null, 4));
+
+
+function validateArgs(args) {
+    if (!path.isAbsolute(args.file)) {
+        args.file = path.join(__dirname, args.file);
+    }
+    try {
+        let stat = fs.statSync(args.file);
+        if (!stat.isFile()) {
+            throw new Error('not a regular file: ' + args.file);
+        }
+    }
+    catch (err) {
+        throw new Error(err.message);
+    }
+    return args;
+}
+
+
+console.log(JSON.stringify(global.docs, null, 4));
 

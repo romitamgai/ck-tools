@@ -35,6 +35,17 @@ describe('CommandLine', function() {
         })
     })
     
+    describe('#parse missing callback', function() {
+        it ('should treat callback as optional', function() {
+            assert.throws(function() {
+                commandLine.parse([ '-h' ])
+            }, Error);
+            assert.doesNotThrow(function() {
+                commandLine.parse([ '--file=foo' ]);
+            })
+        })
+    })
+    
     describe('#usage()', function() {
         it ('should return expected usage message', function() {
             const usage = 'Usage:\nnode _mocha [--encoding=<encoding>] --file=<file> [--help]'
