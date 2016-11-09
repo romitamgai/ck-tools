@@ -128,7 +128,7 @@ function addWorkgroup(loc, w) {
     ckwg.id = 'ckwg.' + loc.country + '.' + loc.language + '.' + ckwg.classificationNumber;
     ckwg.instructionalPrograms = [];
     global.docs.forEach(addInstructionalProgram.bind(null, ckwg));
-    global.workgroups.push(JSON.parse(JSON.stringify(ckwg)));
+    global.workgroups.push(ckwg);
 }
 
 
