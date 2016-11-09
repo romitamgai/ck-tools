@@ -32,9 +32,11 @@ sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
     let cell = sheetProcessor.sheet[col + row];
     if (row == sheetProcessor.firstRow) {
         // assume first row has the titles
-        if (!global.prop) global.prop = [];
+        if (!global.prop) {
+            global.prop = [];
+        }
         if (cell) {
-            global.prop[col] = cell.v.trim(cell.v);
+            global.prop[col] = cell.v;
         }
         return;
     }
