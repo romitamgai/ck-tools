@@ -109,7 +109,7 @@ function addInstructionalProgram(ckwg, ip) {
     const index = +ckwg.instructionalPrograms.length + 1;
     ckwg.instructionalPrograms.push({
         name: ip['Program of Study Title'],
-        descriptiom: ip['Description'],
+        description: ip['Description'],
         campus: ip['Campus'],
         url: ip['URL'],
         id: 'ckip.' + ckwg.locale[0].country + '.' + ckwg.locale[0].language 
