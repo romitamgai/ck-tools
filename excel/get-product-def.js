@@ -1,19 +1,25 @@
 // Extract product definitions from Excel file
 'use strict';
-const fs = require('fs'); // for validating input file path
-const path = require('path');
-
 const xlsx = require('xlsx');
 const SheetProcessor = require('./sheet-processor');
 
+// Global variables
+const global = {
+    docs: [],
+    workgroups: []
+};
+
+// Parse command line
 const CmdLineSpec = require('../command-line');
 const cmdLineSpec = new CmdLineSpec([
     { name: 'file', alias: 'f', type: String },
+    { name: 'locale', alias: 'l', type: String, defaultValue: 'en-CA' },
     { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1' },
     { name: 'workgroups', alias: 'w', type: Boolean, defaultValue: false },
 ]);
-
 const args = validateArgs(cmdLineSpec.parse(process.argv));
+
+// Open worksheet
 const workbook = xlsx.readFile(args.file);
 const sheet = workbook.Sheets[args.sheet];
 if (!sheet) {
@@ -21,18 +27,14 @@ if (!sheet) {
 }
 const sheetProcessor = new SheetProcessor(sheet);
 
-const global = {
-    docs: []
-};
-
-
+// Process cells in sheet
 sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
     let cell = sheetProcessor.sheet[col + row];
     if (row == sheetProcessor.firstRow) {
         // assume first row has the titles
         if (!global.prop) global.prop = [];
         if (cell) {
-            global.prop[col] = cell.v;
+            global.prop[col] = cell.v.trim(cell.v);
         }
         return;
     }
@@ -40,15 +42,30 @@ sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
     if (!global.doc) {
         global.doc = {};
     }
-    global.doc[global.prop[col]] = cell? cell.v : cell; 
+    let prop = global.prop[col];
+    global.doc[prop] = cell? cell.v : cell; 
     if (rowComplete) {
         let temp = JSON.parse(JSON.stringify(global.doc));
         if (Object.keys(temp) != 0) {
             global.docs.push(temp);
         }
+        global.doc = {};
     }
 });
 
+if (args.workgroups) {
+    generateWorkgroupMappings(args);
+}
+else {
+    console.log(JSON.stringify(global.docs, null, 4));
+}
+
+
+// Helper functions:
+
+// Hack for lazy formatting in instructional programs file:
+// assume that if a classification is not found in the row,
+// then we should apply the previous that we've seen.
 
 function findCellValue(sheet, col, row, nextRow) {
     let cell = sheet[col + row];
@@ -65,6 +82,9 @@ function findCellValue(sheet, col, row, nextRow) {
 
 
 function validateArgs(args) {
+    const fs = require('fs');
+    const path = require('path');
+
     if (!path.isAbsolute(args.file)) {
         args.file = path.join(__dirname, args.file);
     }
@@ -81,5 +101,41 @@ function validateArgs(args) {
 }
 
 
-console.log(JSON.stringify(global.docs, null, 4));
+// CK-specific stuff:
+
+function addInstructionalProgram(ckwg, ip) {
+    const index = +ckwg.instructionalPrograms.length + 1;
+    ckwg.instructionalPrograms.push({
+        name: ip['Program of Study Title'],
+        descriptiom: ip['Description'],
+        campus: ip['Campus'],
+        url: ip['URL'],
+        id: 'ckip.' + ckwg.locale[0].country + '.' + ckwg.locale[0].language 
+            + '-' + ckwg.classificationNumber + '-' + index,
+    });
+}
+
+
+function addWorkgroup(loc, w) {
+    let ckwg = {};
+    ckwg.locale = [ { country: loc.country, language: loc.language } ];
+    ckwg.title = w['Work Group Title'];
+    ckwg.personalityType = w['Personality type'];
+    ckwg.classificationNumber = w['Classification #'];
+    ckwg.entity = 'ckwg';
+    ckwg.id = 'ckwg.' + loc.country + '.' + loc.language + '.' + ckwg.classificationNumber;
+    ckwg.instructionalPrograms = [];
+    global.docs.forEach(addInstructionalProgram.bind(null, ckwg));
+    global.workgroups.push(JSON.parse(JSON.stringify(ckwg)));
+}
+
+
+function generateWorkgroupMappings(args) {
+    const Locale = require('locale').Locale;
+    const loc = new Locale(args.locale);
+
+    const workgroups = require('./ck-workgroups.json');
+    workgroups.forEach(addWorkgroup.bind(null, loc));
+    console.log(JSON.stringify(global.workgroups, null, 4));
+}
 

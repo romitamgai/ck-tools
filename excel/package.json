@@ -10,6 +10,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "fs": "0.0.1-security",
+    "locale": "^0.1.0",
     "xlsx": "^0.8.0"
   }
 }
