@@ -5,6 +5,7 @@ const SheetProcessor = require('./sheet-processor');
 
 // Global variables
 const global = {
+    dict: [], // for consolidating instructional programs by title (name)
     docs: [],
     workgroups: []
 };
@@ -106,19 +107,37 @@ function validateArgs(args) {
 // CK-specific stuff:
 
 function addInstructionalProgram(ckwg, ip) {
-    const index = +ckwg.instructionalPrograms.length + 1;
-    ckwg.instructionalPrograms.push({
-        name: ip['Program of Study Title'],
-        description: ip['Description'],
-        campus: ip['Campus'],
-        url: ip['URL'],
-        id: 'ckip.' + ckwg.locale[0].country + '.' + ckwg.locale[0].language 
-            + '-' + ckwg.classificationNumber + '-' + index,
-    });
+    if (ip['CK Classification'] != ckwg.classificationNumber) {
+        return; // TODO: Fix algo complexity, this is O(NxM)
+    }
+    const title = ip['Program of Study Title'];
+    let instructionalProgram = global.dict[title];
+    if (instructionalProgram) {
+        instructionalProgram.campuses.push({
+            name: ip['Campus'],
+            url: ip['URL'],
+        });
+    }
+    else { 
+        const index = +ckwg.instructionalPrograms.length + 1;
+        instructionalProgram = {
+            id: 'ckip.' + ckwg.locale[0].country + '.' + ckwg.locale[0].language 
+                + '-' + ckwg.classificationNumber + '-' + index,
+            name: title,
+            description: ip['Description'],
+            campuses: [ {
+                name: ip['Campus'],
+                url: ip['URL'],
+            } ]
+        };
+        global.dict[title] = instructionalProgram;
+        ckwg.instructionalPrograms.push(instructionalProgram);
+    }
 }
 
 
 function addWorkgroup(loc, w) {
+    global.dict = []; // reset dictionary, just to be safe
     let ckwg = {};
     ckwg.locale = [ { country: loc.country, language: loc.language } ];
     ckwg.title = w['Work Group Title'];
