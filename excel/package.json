@@ -9,8 +9,10 @@
   "author": "Cristian Vlasceanu <cristian@careerkey.org>",
   "license": "UNLICENSED",
   "dependencies": {
+    "assert": "^1.4.1",
     "fs": "0.0.1-security",
     "locale": "^0.1.0",
     "xlsx": "^0.8.0"
-  }
+  },
+  "devDependencies": {}
 }

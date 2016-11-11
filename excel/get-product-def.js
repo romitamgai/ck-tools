@@ -1,11 +1,12 @@
 // Extract product definitions from Excel file
 'use strict';
+const assert = require('assert');
+
 const xlsx = require('xlsx');
 const SheetProcessor = require('./sheet-processor');
 
 // Global variables
 const global = {
-    dict: [], // for consolidating instructional programs by title (name)
     docs: [],
     workgroups: []
 };
@@ -107,9 +108,7 @@ function validateArgs(args) {
 // CK-specific stuff:
 
 function addInstructionalProgram(ckwg, ip) {
-    if (ip['CK Classification'] != ckwg.classificationNumber) {
-        return; // TODO: Fix algo complexity, this is O(NxM)
-    }
+    assert.equal(ip['CK Classification'], ckwg.classificationNumber);
     const title = ip['Program of Study Title'];
     let instructionalProgram = global.dict[title];
     if (instructionalProgram) {
@@ -136,27 +135,48 @@ function addInstructionalProgram(ckwg, ip) {
 }
 
 
-function addWorkgroup(loc, w) {
-    global.dict = []; // reset dictionary, just to be safe
-    let ckwg = {};
-    ckwg.locale = [ { country: loc.country, language: loc.language } ];
-    ckwg.title = w['Work Group Title'];
-    ckwg.personalityType = w['Personality type'];
-    ckwg.classificationNumber = w['Classification #'];
-    ckwg.entity = 'ckwg';
-    ckwg.id = 'ckwg.' + loc.country + '.' + loc.language + '.' + ckwg.classificationNumber;
-    ckwg.instructionalPrograms = [];
-    global.docs.forEach(addInstructionalProgram.bind(null, ckwg));
+function addWorkgroup(loc, programsByClassification, w) {
+    const classification = w['Classification #'];
+    const instructionalPrograms = programsByClassification[classification];
+    if (!instructionalPrograms) {
+        return;
+    }
+    let ckwg = {
+        locale: [ { country: loc.country, language: loc.language } ],
+        title: w['Work Group Title'],
+        personalityType: w['Personality type'],
+        classificationNumber: classification,
+        entity: 'ckwg',
+        id: 'ckwg.' + loc.country + '.' + loc.language + '.' + classification,
+        instructionalPrograms: []
+    };
+    global.dict = []; // for consolidating instructional programs by title (name)
+    instructionalPrograms.forEach(addInstructionalProgram.bind(null, ckwg));
     global.workgroups.push(ckwg);
 }
 
 
 function generateWorkgroupMappings(args) {
+    const programsByClassification = instructionalProgramsByClassification();
+
     const Locale = require('locale').Locale;
     const loc = new Locale(args.locale);
 
     const workgroups = require('./ck-workgroups.json');
-    workgroups.forEach(addWorkgroup.bind(null, loc));
+    workgroups.forEach(addWorkgroup.bind(null, loc, programsByClassification));
     console.log(JSON.stringify(global.workgroups, null, 4));
+}
+
+
+function instructionalProgramsByClassification() {
+    let groups = {};
+    global.docs.forEach(function(ip) {
+        const classification = ip['CK Classification'];
+        if (!groups[classification]) {
+            groups[classification] = [];
+        }
+        groups[classification].push(ip);
+    });
+    return groups;
 }
 
