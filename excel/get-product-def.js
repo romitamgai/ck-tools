@@ -1,6 +1,8 @@
 // Extract product definitions from Excel file
 'use strict';
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 
 const xlsx = require('xlsx');
 const SheetProcessor = require('./sheet-processor');
@@ -162,9 +164,18 @@ function generateWorkgroupMappings(args) {
     const Locale = require('locale').Locale;
     const loc = new Locale(args.locale);
 
+    try {
+        fs.mkdirSync(loc.normalized);
+    }
+    catch (e) {
+        if (e.code != 'EEXIST') throw e;
+    }
     const workgroups = require('./ck-workgroups.json');
     workgroups.forEach(addWorkgroup.bind(null, loc, programsByClassification));
-    console.log(JSON.stringify(global.workgroups, null, 4));
+    const data = JSON.stringify(global.workgroups, null, 4);
+    const filepath = path.join(loc.normalized, 'workgroupMappings.json');
+    fs.writeFileSync(filepath, data);
+    writeWorkgroups(workgroups, loc);
 }
 
 
@@ -178,5 +189,29 @@ function instructionalProgramsByClassification() {
         groups[classification].push(ip);
     });
     return groups;
+}
+
+
+function writeWorkgroups(workgroups, loc) {
+    const id = 'ckwg.' + loc.country + '.' + loc.language;
+    const localizedWorkgroups = {
+        id: id,
+        entity: 'ckwg',
+    }
+
+    //TODO: use Google Translate for personality types and titles?
+    // https://github.com/Localize/node-google-translate
+
+    localizedWorkgroups.workgroups = global.workgroups.map(function(w) {
+        return {
+            id: w.id,
+            personalityType: w.personalityType,
+            title: w.title,
+            pt: w.personalityType[0],
+        }
+    });
+    const filepath = path.join(loc.normalized, 'workgroups.json');
+    const data = JSON.stringify(localizedWorkgroups, null, 4);
+    fs.writeFileSync(filepath, data);
 }
 
