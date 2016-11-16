@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const uuid = require('node-uuid');
 
 const xlsx = require('xlsx');
 const SheetProcessor = require('./sheet-processor');
@@ -16,6 +17,7 @@ const global = {
 // Parse command line
 const CmdLineSpec = require('../command-line');
 const cmdLineSpec = new CmdLineSpec([
+    { name: 'cip', alias: 'c', type: Boolean, defaultValue: false },
     { name: 'file', alias: 'f', type: String },
     { name: 'locale', alias: 'l', type: String, defaultValue: 'en-CA' },
     { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1' },
@@ -60,7 +62,17 @@ sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
 });
 
 if (args.workgroups) {
-    generateWorkgroupMappings(args);
+    const Locale = require('locale').Locale;
+    const loc = new Locale(args.locale);
+    try {
+        fs.mkdirSync(loc.normalized);
+    }
+    catch (e) {
+        if (e.code != 'EEXIST') throw e;
+    }
+    const workgroups = require('./ck-workgroups.json');
+    generateWorkgroupMappings(workgroups, loc);
+    writeWorkgroups(workgroups, loc);
 }
 else {
     console.log(JSON.stringify(global.docs, null, 4));
@@ -111,7 +123,7 @@ function validateArgs(args) {
 
 function addInstructionalProgram(ckwg, ip) {
     assert.equal(ip['CK Classification'], ckwg.classificationNumber);
-    const title = ip['Program of Study Title'];
+    const title = ip['Program of Study Title'].trim();
     let instructionalProgram = global.dict[title];
     if (instructionalProgram) {
         instructionalProgram.campuses.push({
@@ -131,6 +143,11 @@ function addInstructionalProgram(ckwg, ip) {
                 url: ip['URL'],
             } ]
         };
+        // automatically generate cip info?
+        if (args.cip) {
+            instructionalProgram.cipName = instructionalProgram.name + '.';
+            instructionalProgram.cipCode = uuid.v4();
+        }
         global.dict[title] = instructionalProgram;
         ckwg.instructionalPrograms.push(instructionalProgram);
     }
@@ -158,24 +175,48 @@ function addWorkgroup(loc, programsByClassification, w) {
 }
 
 
-function generateWorkgroupMappings(args) {
+function generateWorkgroupMappings(workgroups, loc) {
     const programsByClassification = instructionalProgramsByClassification();
-
-    const Locale = require('locale').Locale;
-    const loc = new Locale(args.locale);
-
-    try {
-        fs.mkdirSync(loc.normalized);
-    }
-    catch (e) {
-        if (e.code != 'EEXIST') throw e;
-    }
-    const workgroups = require('./ck-workgroups.json');
     workgroups.forEach(addWorkgroup.bind(null, loc, programsByClassification));
+    if (args.cip) {
+        generateSchoolInfo(loc);
+    }    
     const data = JSON.stringify(global.workgroups, null, 4);
     const filepath = path.join(loc.normalized, 'workgroupMappings.json');
     fs.writeFileSync(filepath, data);
-    writeWorkgroups(workgroups, loc);
+}
+
+
+function generateSchoolInfo(loc) {
+    const filepath = path.join(loc.normalized, 'schools.json');
+    const id = 'sch.' + loc.country + '.' + loc.language + '.' + uuid.v4();
+    const school = {
+        id: id,
+        entity: 'sch',
+        lang: loc.language,
+        country: loc.country,
+    }
+    try {
+        const info = require('./ck-school-info.json');
+        for (let prop in info) {
+            school[prop] = info[prop];
+        }
+    }
+    catch (e) {
+        console.log('Warning: ' + e.message);
+    }
+    school.majors = [];
+    global.workgroups.map(function(w) {
+        if (!w.instructionalPrograms) {
+            return;
+        }
+        w.instructionalPrograms.map(function (ip) {
+            ip.Schools = [ id ];
+            school.majors.push({ cip: ip.cipCode });
+        })
+    })
+    const data = JSON.stringify(school, null, 4);
+    fs.writeFileSync(filepath, data);
 }
 
 
