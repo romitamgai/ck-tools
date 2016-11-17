@@ -29,7 +29,7 @@ class CommandLine {
         if (callback) {
             callback(error, params);
         }
-        else if (error) {
+        else if (error && !params.help) {
             throw new Error(error);
         }
         return params;
@@ -40,24 +40,35 @@ class CommandLine {
             return def.name == 'help' || def.hasOwnProperty('defaultValue');
         }
         const progname = path.basename(process.argv[1]);
-        let options = '';
+        let options = ' <options>';
         let getOpts = '';
         this.definitions.forEach(function(def) {
+            let opt = '';
             if (isOptional(def)) {
-                options += ' [--' + def.name;
+                opt += '\n  [--' + def.name;
                 if (def.alias) getOpts += ' [-' + def.alias;
             }
             else {
-                options += ' --' + def.name;
+                opt += '\n  --' + def.name;
                 if (def.alias) getOpts += ' -' + def.alias;
             }
             if (def.type !== Boolean) {
-                options += '=<' + def.name + '>';
+                opt += '=<' + def.name + '>';
                 if (def.alias) getOpts += ' <' + def.name + '>';
             }
             if (isOptional(def)) {
-                options += ']';
+                opt += ']';
                 if (def.alias) getOpts += ']';
+            }
+            options += opt;
+            if (def.help) {
+                for (let i = 0; i < (33 - opt.length) / 8; ++i) {
+                    options += '\t';
+                }
+                options += def.help;
+                if (def.hasOwnProperty('defaultValue')) {
+                    options += ' (default: ' + def.defaultValue + ')';
+                }
             }
         });
         return 'Usage:\nnode ' + progname + options + '\nnode ' + progname + getOpts;

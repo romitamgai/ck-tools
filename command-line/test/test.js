@@ -39,17 +39,21 @@ describe('CommandLine', function() {
     describe('#parse missing callback', function() {
         it ('should treat callback as optional', function() {
             assert.throws(function() {
-                commandLine.parse([ '-h' ])
+                commandLine.parse([ '--flag' ])
             }, Error);
             assert.doesNotThrow(function() {
                 commandLine.parse([ '--file=foo' ]);
+            })
+            assert.doesNotThrow(function() {
+                commandLine.parse([ '--help' ]);
             })
         })
     })
     
     describe('#usage()', function() {
         it ('should return expected usage message', function() {
-            const usage = 'Usage:\nnode _mocha [--encoding=<encoding>] --file=<file> [--flag] [--help]'
+            const usage = 'Usage:\nnode _mocha <options>\n  [--encoding=<encoding>]'
+                + '\n  --file=<file>\n  [--flag]\n  [--help]'
                 + '\nnode _mocha [-e <encoding>] -f <file> [-h]';
             assert.equal(commandLine.usage(), usage);
         })

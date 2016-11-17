@@ -23,11 +23,11 @@ const global = {
 // Parse command line
 const CmdLineSpec = require('../command-line');
 const cmdLineSpec = new CmdLineSpec([
-    { name: 'cip', alias: 'c', type: Boolean, defaultValue: false },
-    { name: 'file', alias: 'f', type: String },
-    { name: 'locale', alias: 'l', type: String, defaultValue: 'en-CA' },
-    { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1' },
-    { name: 'workgroups', alias: 'w', type: Boolean, defaultValue: false },
+    { name: 'cip', alias: 'c', type: Boolean, defaultValue: false, help: 'Generate CIP UUIDs' },
+    { name: 'file', alias: 'f', type: String, help: 'Specify input Excel file' },
+    { name: 'locale', alias: 'l', type: String, defaultValue: 'en-CA', help: 'Locale to output' },
+    { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1', help: 'Which sheet to use' },
+    { name: 'workgroups', alias: 'w', type: Boolean, defaultValue: false, help: 'Generate workgroup and mappings' },
 ]);
 const args = validateArgs(cmdLineSpec.parse(process.argv));
 
@@ -106,6 +106,10 @@ function findCellValue(sheet, col, row, nextRow) {
 
 
 function validateArgs(args) {
+    if (args.help) {
+        console.log(cmdLineSpec.usage());
+        process.exit(0);
+    }
     const fs = require('fs');
     const path = require('path');
 
