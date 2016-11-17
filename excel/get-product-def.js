@@ -1,5 +1,11 @@
 // Extract product definitions from Excel file
 'use strict';
+var ckCampus = 'Campus';
+var ckClassification = 'CK';
+var ckDescription = 'Program Description';
+var ckURL = 'Program Page URL';
+var ckTitle = 'Program Title';
+
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -91,7 +97,7 @@ function findCellValue(sheet, col, row, nextRow) {
         ++row;
         cell = sheet[col + row];
     }
-    if (global.prop[col] == 'CK Classification') {
+    if (global.prop[col] == ckClassification) {
         if (!cell) cell = global.prev;
         global.prev = cell;
     }
@@ -122,13 +128,13 @@ function validateArgs(args) {
 // CK-specific stuff:
 
 function addInstructionalProgram(ckwg, ip) {
-    assert.equal(ip['CK Classification'], ckwg.classificationNumber);
-    const title = ip['Program of Study Title'].trim();
+    assert.equal(ip[ckClassification], ckwg.classificationNumber);
+    const title = ip[ckTitle].trim();
     let instructionalProgram = global.dict[title];
     if (instructionalProgram) {
         instructionalProgram.campuses.push({
-            name: ip['Campus'],
-            url: ip['URL'],
+            name: ip[ckCampus].trim(),
+            url: ip[ckURL].trim(),
         });
     }
     else { 
@@ -137,10 +143,10 @@ function addInstructionalProgram(ckwg, ip) {
             id: 'ckip.' + ckwg.locale[0].country + '.' + ckwg.locale[0].language 
                 + '-' + ckwg.classificationNumber + '-' + index,
             name: title,
-            description: ip['Description'],
+            description: ip[ckDescription].trim(),
             campuses: [ {
-                name: ip['Campus'],
-                url: ip['URL'],
+                name: ip[ckCampus].trim(),
+                url: ip[ckURL].trim(),
             } ]
         };
         // automatically generate cip info?
@@ -167,6 +173,7 @@ function addWorkgroup(loc, programsByClassification, w) {
         classificationNumber: classification,
         entity: 'ckwg',
         id: 'ckwg.' + loc.country + '.' + loc.language + '.' + classification,
+        careers: [],
         instructionalPrograms: []
     };
     global.dict = []; // for consolidating instructional programs by title (name)
@@ -212,7 +219,7 @@ function generateSchoolInfo(loc) {
         }
         w.instructionalPrograms.map(function (ip) {
             ip.Schools = [ id ];
-            school.majors.push({ cip: ip.cipCode });
+            school.majors.push({ cipCode: ip.cipCode });
         })
     })
     const data = JSON.stringify(school, null, 4);
@@ -223,7 +230,7 @@ function generateSchoolInfo(loc) {
 function instructionalProgramsByClassification() {
     let groups = {};
     global.docs.forEach(function(ip) {
-        const classification = ip['CK Classification'];
+        const classification = ip[ckClassification];
         if (!groups[classification]) {
             groups[classification] = [];
         }
