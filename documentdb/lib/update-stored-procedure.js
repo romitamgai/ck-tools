@@ -39,7 +39,7 @@ module.exports = function(client, dbName, collName, sproc, callback) {
                 }
                 else {
                     const body = results[0].body;
-                    // crude way to detet if procedure has changed
+                    // crude way to detect if procedure has changed
                     if (results[0].body.toString() == sproc.body.toString()) {
                         console.log('Stored procedure is up to date');
                         callback(err, results);
