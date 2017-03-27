@@ -25,7 +25,8 @@ const CmdLineSpec = require('../command-line');
 const cmdLineSpec = new CmdLineSpec([
     { name: 'cip', alias: 'c', type: Boolean, defaultValue: false, help: 'Generate CIP UUIDs' },
     { name: 'file', alias: 'f', type: String, help: 'Specify input Excel file' },
-    { name: 'locale', alias: 'l', type: String, defaultValue: 'en-CA', help: 'Locale to output' },
+    { name: 'locale', alias: 'l', type: String, defaultValue: 'en-US', help: 'Locale to output' },
+    { name: 'schools', type: Boolean, defaultValue: false, help:'Generates Schools data, If ck-schoolid-cip.json is present then it also maps college majors to the school data'},
     { name: 'sheet', alias: 's', type: String, defaultValue: 'Sheet1', help: 'Which sheet to use' },
     { name: 'workgroups', alias: 'w', type: Boolean, defaultValue: false, help: 'Generate workgroup and mappings' },
 ]);
@@ -38,6 +39,11 @@ if (!sheet) {
     throw new Error('sheet not found: ' + args.sheet);
 }
 const sheetProcessor = new SheetProcessor(sheet);
+const Locale = require('locale').Locale;
+const loc = new Locale(args.locale);
+
+const GENERATED = 'generated';
+const GENERATED_PATH = GENERATED + path.sep + loc.normalized;
 
 // Process cells in sheet
 sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
@@ -68,19 +74,28 @@ sheetProcessor.forEachCell(function(col, row, nextRow, rowComplete) {
 });
 
 if (args.workgroups) {
-    const Locale = require('locale').Locale;
-    const loc = new Locale(args.locale);
-    try {
-        fs.mkdirSync(loc.normalized);
-    }
-    catch (e) {
-        if (e.code != 'EEXIST') throw e;
-    }
+    generateFolder();
     const workgroups = require('./ck-workgroups.json');
     generateWorkgroupMappings(workgroups, loc);
     writeWorkgroups(workgroups, loc);
-}
-else {
+} else if(args.schools){
+    generateFolder();
+    const schools = global.docs;
+    const filepath = path.join(GENERATED_PATH, 'schools.json');
+    try {
+        const schoolIdCips = require('./'+GENERATED_PATH+'/ck-schoolid-cip.json');
+        const schoolsWithMajors = addSchoolMajors(schools, schoolIdCips);
+        fs.writeFileSync(filepath, getSchoolJSONString(schoolsWithMajors));
+    }
+    catch (e) {
+        console.log('Warning: ' + e.message);
+        fs.writeFileSync(filepath, getSchoolJSONString(schools));
+    }
+} else if(args.cip){
+    generateFolder();
+    const filepath = path.join(GENERATED_PATH, 'ck-schoolid-cip.json');
+    fs.writeFileSync(filepath, JSON.stringify(global.docs, null, 4))
+} else {
     console.log(JSON.stringify(global.docs, null, 4));
 }
 
@@ -90,6 +105,43 @@ else {
 // Hack for lazy formatting in instructional programs file:
 // assume that if a classification is not found in the row,
 // then we should apply the previous that we've seen.
+
+function generateFolder(){
+    try {
+        !fs.existsSync(GENERATED) && fs.mkdirSync(GENERATED)
+        !fs.existsSync(GENERATED_PATH) &&fs.mkdirSync(GENERATED_PATH);
+    } catch (e) {
+        if (e.code != 'EEXIST') throw e;
+    }
+}
+
+function getSchoolJSONString(schools){
+  schools.forEach(function(school){
+    school.id = 'sch.' + loc.country +'.'+ loc.language +'.'+ school.id;
+    school.zip = ''+school.zip;
+  });
+  return JSON.stringify(schools, null, 4);
+}
+
+function existingCip(cip, majors){
+    let exists = false;
+    majors.forEach(function(major){
+        if(major.cip === cip)
+            exists = true;
+    });
+    return exists;
+}
+
+function addSchoolMajors(schools, schoolIdCips){
+    schools.forEach(function(school){
+        school.majors = [];
+        schoolIdCips.forEach(function(schoolIdCip){
+            if(school.id === schoolIdCip.id && !existingCip(schoolIdCip.cip, school.majors))
+                school.majors.push({cip:schoolIdCip.cip});
+        });
+    });
+    return schools;
+}
 
 function findCellValue(sheet, col, row, nextRow) {
     let cell = sheet[col + row];
@@ -193,13 +245,13 @@ function generateWorkgroupMappings(workgroups, loc) {
         generateSchoolInfo(loc);
     }    
     const data = JSON.stringify(global.workgroups, null, 4);
-    const filepath = path.join(loc.normalized, 'workgroupMappings.json');
+    const filepath = path.join(GENERATED_PATH, 'workgroupMappings.json');
     fs.writeFileSync(filepath, data);
 }
 
 
 function generateSchoolInfo(loc) {
-    const filepath = path.join(loc.normalized, 'schools.json');
+    const filepath = path.join(GENERATED_PATH, 'schools.json');
     const id = 'sch.' + loc.country + '.' + loc.language + '.' + uuid.v4();
     const school = {
         id: id,
@@ -262,7 +314,7 @@ function writeWorkgroups(workgroups, loc) {
             pt: w.personalityType[0],
         }
     });
-    const filepath = path.join(loc.normalized, 'workgroups.json');
+    const filepath = path.join(GENERATED_PATH, 'workgroups.json');
     const data = JSON.stringify(localizedWorkgroups, null, 4);
     fs.writeFileSync(filepath, data);
 }
