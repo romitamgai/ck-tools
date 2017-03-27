@@ -11,7 +11,7 @@ Usage
         - Run `node get-product-def.js --schools -f <Excel file for school data>` (Eg: `node get-product-def.js --schools -f "sample_files/schooldata.xlsx"`)
     3. Getting School data with its majors in JSON format
         - Navigate to folder excel
-        - Run `node get-product-def.js -f <Excel file for School Id to CIP>` (Eg: `node get-product-def.js --schools -f "sample_files/schoolid_cip.xls"`)
+        - Run `node get-product-def.js -f <Excel file for School Id to CIP> > ck-schoolid-cip.json` (Eg: `node get-product-def.js --schools -f "sample_files/schoolid_cip.xls" > ck-schoolid-cip.json`)
         - Run `node get-product-def.js -f <Excel file for school data>`
   
     
