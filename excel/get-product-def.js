@@ -120,6 +120,8 @@ function getSchoolJSONString(schools){
     school.id = 'sch.' + loc.country +'.'+ loc.language +'.'+ school.id;
     school.zip = ''+school.zip;
     school.entity='sch';
+    school.lang=loc.language;
+    school.country=loc.country;
   });
   return JSON.stringify(schools, null, 4);
 }
