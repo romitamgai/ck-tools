@@ -119,6 +119,7 @@ function getSchoolJSONString(schools){
   schools.forEach(function(school){
     school.id = 'sch.' + loc.country +'.'+ loc.language +'.'+ school.id;
     school.zip = ''+school.zip;
+    school.entity='sch';
   });
   return JSON.stringify(schools, null, 4);
 }
